@@ -5,7 +5,6 @@
 #undef REQUIRE_PLUGIN
 #include <shop>
 #include <vip_core>
-
 #include <hudcore>
 
 #pragma newdecls required
