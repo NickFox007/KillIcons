@@ -342,6 +342,7 @@ public Action Timer_Check(Handle timer, any client)
 
 public void OnPluginEnd()
 {
+	delete g_hMainMenu;
 	delete g_hChooseMenu;
 	UnhookEvent("player_death",Death,EventHookMode_Pre);
 	
