@@ -15,12 +15,13 @@ public Plugin myinfo =
 	name = "[VIP+SHOP] Kill Icons",
 	description = "Allow players to choose theirs own kill icon",
 	author = "Nick Fox",
-	version = "1.0",
+	version = "1.1",
 	url = "https://vk.com/nf_dev"
 }
 
 
-Handle g_hCookie;
+Handle
+	g_hCookie;
 Menu
 	g_hMainMenu,
 	g_hChooseMenu;
@@ -76,15 +77,15 @@ public void OnPluginStart()
 	g_hCookie = RegClientCookie("killicon", "Kill Icon",  CookieAccess_Private);
 	HookEvent("player_death",Death,EventHookMode_Pre);
 	LoadConfig();
-	
+	if (Shop_IsStarted()) Shop_Started();
 	RegConsoleCmd("sm_icons", CmdMenu);
+	g_sIconName[0] = "Выключить";
 	
 	if(g_bLateLoad) for(int i = 1; i < MAXPLAYERS; i++) if(IsClientInGame(i)&&!IsFakeClient(i))
 	{
 		g_bCookieLoaded[i] = true;
 		OnClientPostAdminCheck(i);
-	}
-	g_sIconName[0] = "Выключить";
+	}	
 }
 
 bool hasRights(int client, int icon)
@@ -120,7 +121,7 @@ public void OnClientPostAdminCheck(int client)
 public void OnLibraryAdded(const char[] szName) 
 {
 	if(StrEqual(szName,"vip_core")&&CVARVIP.IntValue==1) LoadVIPCore();
-	if(StrEqual(szName,"shop")&&CVARShop.IntValue==1) LoadShopCore();
+	//if(StrEqual(szName,"shop")&&CVARShop.IntValue==1) LoadShopCore();
 	if(StrEqual(szName,"hudcore")) g_bHudCore = true;
 }
 
@@ -130,6 +131,12 @@ public void OnLibraryRemoved(const char[] szName)
 	if(StrEqual(szName,"shop"))	g_bShopCore = false;
 	if(StrEqual(szName,"hudcore")) g_bHudCore = false;
 }
+
+public void Shop_Started()
+{
+	LoadShopCore();
+}
+
 
 Action Timer_DelayVIPCore(Handle hTimer)
 {
@@ -146,7 +153,7 @@ Action Timer_DelayShopCore(Handle hTimer)
 void LoadVIPCore()
 {
 	if(!VIP_IsVIPLoaded()) CreateTimer(1.0, Timer_DelayVIPCore);
-	if(g_bVipCore) return;
+	if(g_bVipCore || CVARVIP.IntValue == 0) return;
 
 	VIP_RegisterFeature(g_sMainName, STRING, SELECTABLE, OnVipItemSelect);
 	
@@ -175,7 +182,7 @@ void LoadShopCore()
 {
 	if(!Shop_IsStarted()) CreateTimer(1.0, Timer_DelayShopCore);
 
-	if(g_bShopCore) return;
+	if(g_bShopCore || CVARShop.IntValue == 0) return;
 
 	
 	g_iCategory_id = Shop_RegisterCategory("kill_icons", g_sMainName, "");
@@ -279,7 +286,7 @@ void IconPreview(int client, int icon)
 
 
 void UnloadShopCore()
-{
+{	
 	if(!g_bShopCore||!Shop_IsStarted()) return;
 	Shop_UnregisterMe();
 	g_bShopCore = false;
@@ -419,6 +426,10 @@ public void LoadConfig()
 	if(!kv.ImportFromFile(sPath))
 		SetFailState("ERROR: ImportFromFile config");
 	
+	(CVARFastDL = FindConVar("sv_downloadurl")).AddChangeHook(ChangeCvar_FastDL);	
+	CVARFastDL.GetString(g_sFastDL, sizeof(g_sFastDL));
+	FixFastDL();
+	
 	kv.Rewind();
 	if(kv.GotoFirstSubKey())
 	{
@@ -436,8 +447,8 @@ public void LoadConfig()
 				g_iIconBuyTime[g_iIconCount] = kv.GetNum("duration");
 				char sNum[4]; FormatEx(sNum, sizeof(sNum),"%i",g_iIconCount);
 				g_hChooseMenu.AddItem(sNum,g_sIconName[g_iIconCount]);
-				FormatEx(sPath,sizeof(sPath),"materials/panorama/images/icons/equipment/%s.svg",g_sIcon[g_iIconCount]);
-				AddFileToDownloadsTable(sPath);				
+				//FormatEx(sPath,sizeof(sPath),"materials/panorama/images/icons/equipment/%s.svg",g_sIcon[g_iIconCount]);
+				//AddFileToDownloadsTable(sPath);				
 			}			
 		}
 		while(kv.GotoNextKey());
@@ -452,13 +463,22 @@ public void LoadConfig()
 	(CVARShop = CreateConVar("sm_killicon_shop_use", "1", "Использовать ядро Shop.", _, true, 0.0, true, 1.0)).AddChangeHook(ChangeCvar_ShopCore);
 	(CVARVIP = CreateConVar("sm_killicon_vip_use", "1", "Использовать ядро VIP.", _, true, 0.0, true, 1.0)).AddChangeHook(ChangeCvar_VIPCore);
 	(CVARAll = CreateConVar("sm_killicon_all_use", "0", "Доступ по умолчанию у всех.", _, true, 0.0, true, 1.0)).AddChangeHook(ChangeCvar_All);	
-	(CVARFastDL = FindConVar("sv_downloadurl")).AddChangeHook(ChangeCvar_FastDL);	
+	
 	
 	g_bAllUse = CVARAll.BoolValue;
-	CVARFastDL.GetString(g_sFastDL, sizeof(g_sFastDL));
-	FixFastDL();
+	
 	
 	AutoExecConfig(true, "kill_icon", "sourcemod");	
+}
+
+public void OnMapStart()
+{
+	char sPath[1024];
+	for(int i = 1; i <= g_iIconCount; i++)
+	{
+		FormatEx(sPath,sizeof(sPath),"materials/panorama/images/icons/equipment/%s.svg",g_sIcon[i]);
+		AddFileToDownloadsTable(sPath);	
+	}
 }
 
 public int ChooseMenuHandler(Menu menu, MenuAction action, int client, int button)
