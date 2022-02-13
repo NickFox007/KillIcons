@@ -15,7 +15,7 @@ public Plugin myinfo =
 	name = "[VIP+SHOP] Kill Icons",
 	description = "Allow players to choose theirs own kill icon",
 	author = "Nick Fox",
-	version = "1.1",
+	version = "1.1.1",
 	url = "https://vk.com/nf_dev"
 }
 
@@ -45,8 +45,8 @@ bool
 char
 	g_sIcon[ICON_LIMIT][ICON_LEN],
 	g_sIconName[ICON_LIMIT][ICON_LEN],
-	g_sMainName[128],
-	g_sFastDL[1024];
+	g_sMainName[128];
+	//g_sFastDL[1024];
 	
 int
 	g_iIconCount,
@@ -58,8 +58,8 @@ int
 ConVar
 	CVARShop,
 	CVARVIP,
-	CVARAll,
-	CVARFastDL;
+	CVARAll;
+	//CVARFastDL;
 	
 ItemId
 	g_iItems[ICON_LIMIT];
@@ -77,7 +77,7 @@ public void OnPluginStart()
 	g_hCookie = RegClientCookie("killicon", "Kill Icon",  CookieAccess_Private);
 	HookEvent("player_death",Death,EventHookMode_Pre);
 	LoadConfig();
-	if (Shop_IsStarted()) Shop_Started();
+	if (GetFeatureStatus(FeatureType_Native, "Shop_IsStarted") == FeatureStatus_Available && Shop_IsStarted()) Shop_Started();
 	RegConsoleCmd("sm_icons", CmdMenu);
 	g_sIconName[0] = "Выключить";
 	
@@ -120,8 +120,7 @@ public void OnClientPostAdminCheck(int client)
 
 public void OnLibraryAdded(const char[] szName) 
 {
-	if(StrEqual(szName,"vip_core")&&CVARVIP.IntValue==1) LoadVIPCore();
-	//if(StrEqual(szName,"shop")&&CVARShop.IntValue==1) LoadShopCore();
+	if(StrEqual(szName,"vip_core") && CVARVIP.IntValue==1) LoadVIPCore();
 	if(StrEqual(szName,"hudcore")) g_bHudCore = true;
 }
 
@@ -192,9 +191,7 @@ void LoadShopCore()
 		
 		if (g_iIconBuyPrice[i]>-1 && Shop_StartItem(g_iCategory_id, g_sIconName[i]))
 		{		
-			Shop_SetInfo(g_sIconName[i], "Иконка, показываемая при убийстве",g_iIconBuyPrice[i], g_iIconSellPrice[i], Item_Togglable, g_iIconBuyTime[i]); //Item_Togglable
-			//Shop_SetCallbacks(OnItemRegistered, OnEquipItem);
-			//Shop_SetCallbacks(OnItemRegistered, OnEquipItem, _, _, _, OnPreviewItem);
+			Shop_SetInfo(g_sIconName[i], "Иконка, показываемая при убийстве", g_iIconBuyPrice[i], g_iIconSellPrice[i], Item_Togglable, g_iIconBuyTime[i]); //Item_Togglable
 			Shop_SetCallbacks(OnItemRegistered, OnEquipItem, _, _, _, OnPreviewItem, OnBuyItem);
 			Shop_EndItem();
 		}
@@ -239,17 +236,18 @@ int GetVictimClient(int client)
 	return -1;
 }
 
+/*
 void FixFastDL()
 {
 	if(g_sFastDL[0])
 	{
 		if(g_sFastDL[strlen(g_sFastDL)-1]!='/') Format(g_sFastDL, sizeof(g_sFastDL), "%s/", g_sFastDL);
 	}
-}
+}*/
 
 void GetPathIcon(int icon, char[] sText, int maxlen)
 {	
-	FormatEx(sText, maxlen, "%smaterials/panorama/images/icons/equipment/%s.svg",g_sFastDL ,g_sIcon[icon]);
+	FormatEx(sText, maxlen, "file://{images}/icons/equipment/%s.svg", g_sIcon[icon]);
 }
 
 void IconPreview(int client, int icon)
@@ -314,12 +312,13 @@ public void ChangeCvar_All(ConVar convar, const char[] oldValue, const char[] ne
 	
 }
 
+/*
 public void ChangeCvar_FastDL(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	FormatEx(g_sFastDL,sizeof(g_sFastDL),"%s", newValue);	
 	FixFastDL();
 }
-
+*/
 bool IsValidClient(int client)
 {
 	if(client>0&&client<65&&IsClientInGame(client)&&!IsFakeClient(client)) return true;
@@ -426,9 +425,9 @@ public void LoadConfig()
 	if(!kv.ImportFromFile(sPath))
 		SetFailState("ERROR: ImportFromFile config");
 	
-	(CVARFastDL = FindConVar("sv_downloadurl")).AddChangeHook(ChangeCvar_FastDL);	
-	CVARFastDL.GetString(g_sFastDL, sizeof(g_sFastDL));
-	FixFastDL();
+	//(CVARFastDL = FindConVar("sv_downloadurl")).AddChangeHook(ChangeCvar_FastDL);	
+	//CVARFastDL.GetString(g_sFastDL, sizeof(g_sFastDL));
+	//FixFastDL();
 	
 	kv.Rewind();
 	if(kv.GotoFirstSubKey())
