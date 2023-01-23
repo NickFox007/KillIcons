@@ -15,7 +15,7 @@ public Plugin myinfo =
 	name = "[VIP+SHOP] Kill Icons",
 	description = "Allow players to choose theirs own kill icon",
 	author = "Nick Fox",
-	version = "1.1.1",
+	version = "1.1.2",
 	url = "https://vk.com/nf_dev"
 }
 
@@ -100,7 +100,7 @@ bool hasRights(int client, int icon)
 	}
 	if(g_bShopCore)
 	{
-		if(Shop_IsClientItemToggled(client, g_iItems[icon])) return true;
+		if(Shop_IsClientHasItem(client, g_iItems[icon]) && Shop_IsClientItemToggled(client, g_iItems[icon])) return true;
 	}
 	return false;
 }
@@ -192,6 +192,7 @@ void LoadShopCore()
 		if (g_iIconBuyPrice[i]>-1 && Shop_StartItem(g_iCategory_id, g_sIconName[i]))
 		{		
 			Shop_SetInfo(g_sIconName[i], "Иконка, показываемая при убийстве", g_iIconBuyPrice[i], g_iIconSellPrice[i], Item_Togglable, g_iIconBuyTime[i]); //Item_Togglable
+			//Shop_SetCallbacks(OnItemRegistered, OnEquipItem, _, _, _, OnPreviewItem, OnBuyItem);
 			Shop_SetCallbacks(OnItemRegistered, OnEquipItem, _, _, _, OnPreviewItem, OnBuyItem);
 			Shop_EndItem();
 		}
@@ -210,6 +211,8 @@ public void OnItemRegistered(CategoryId category_id, const char[] category, cons
 
 public bool OnBuyItem(int client, CategoryId category_id, const char[] category, ItemId item_id, const char[] item, ItemType type, int price, int sell_price, int value)
 {
+	SetIconI(client, FindIconIndex(item));
+	PrintToChat(client, "Переключить иконку можно через меню, вызываемое командой !icons");
 	return true;
 }
 
@@ -452,7 +455,7 @@ public void LoadConfig()
 		}
 		while(kv.GotoNextKey());
 	}
-	
+	g_iIconCount++;	
 	g_hMainMenu = new Menu(MainMenuHandler,MenuAction_Cancel|MenuAction_Select|MenuAction_DrawItem|MenuAction_DisplayItem);
 	g_hMainMenu.SetTitle(g_sMainName);
 	g_hMainMenu.ExitBackButton = true;	
@@ -473,7 +476,7 @@ public void LoadConfig()
 public void OnMapStart()
 {
 	char sPath[1024];
-	for(int i = 1; i <= g_iIconCount; i++)
+	for(int i = 1; i < g_iIconCount; i++)
 	{
 		FormatEx(sPath,sizeof(sPath),"materials/panorama/images/icons/equipment/%s.svg",g_sIcon[i]);
 		AddFileToDownloadsTable(sPath);	
@@ -553,11 +556,21 @@ void GoToShop(int client)
 	if(g_bShopCore) Shop_ShowItemsOfCategory(client, g_iCategory_id);
 }
 
+void SetIconI(int client, int iSelect)
+{
+	g_iSelected[client] = iSelect;
+	
+	char sSelect[8];
+	FormatEx(sSelect, sizeof(sSelect), "%i", iSelect); 	
+	SetClientCookie(client, g_hCookie, sSelect);
+}
+
 void SetIcon(int client, const char[] sSelect)
 {
-	g_iSelected[client] = StringToInt(sSelect);
-	
+	int iSelect = StringToInt(sSelect);
+	g_iSelected[client] = iSelect;
 	SetClientCookie(client, g_hCookie, sSelect);
+	
 }
 
 public Action Death(Event hEvent,const char[] name, bool dontBroadcast)
