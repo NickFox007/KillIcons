@@ -15,7 +15,7 @@ public Plugin myinfo =
 	name = "[VIP+SHOP] Kill Icons",
 	description = "Allow players to choose theirs own kill icon",
 	author = "Nick Fox",
-	version = "1.1.2",
+	version = "1.1.3",
 	url = "https://vk.com/nf_dev"
 }
 
@@ -90,17 +90,20 @@ public void OnPluginStart()
 
 bool hasRights(int client, int icon)
 {
-	if(g_bAllUse || icon == 0) return true;
-	if(g_bVipCore)
+	if(client < 65)
 	{
-		char sVip[1024];
-		VIP_GetClientFeatureString(client, g_sMainName, sVip, sizeof(sVip));
-	
-		if(StrContains(sVip, g_sIconName[icon])>-1) return true;
-	}
-	if(g_bShopCore)
-	{
-		if(Shop_IsClientHasItem(client, g_iItems[icon]) && Shop_IsClientItemToggled(client, g_iItems[icon])) return true;
+		if(g_bAllUse || icon == 0) return true;
+		if(g_bVipCore)
+		{
+			char sVip[1024];
+			VIP_GetClientFeatureString(client, g_sMainName, sVip, sizeof(sVip));
+		
+			if(StrContains(sVip, g_sIconName[icon])>-1) return true;
+		}
+		if(g_bShopCore)
+		{
+			if(Shop_IsClientHasItem(client, g_iItems[icon]) && Shop_IsClientItemToggled(client, g_iItems[icon])) return true;
+		}
 	}
 	return false;
 }
